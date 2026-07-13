@@ -2,6 +2,7 @@ import { Response } from "express";
 import { AuthRequest } from "../middleware/auth";
 import { v4 as uuidv4 } from "uuid";
 import knex from "../db/knex";
+import { Knex } from "knex";
 
 export const bookAppointment = async (req: AuthRequest, res: Response) => {
   const { contactId, startTime, endTime } = req.body;
@@ -9,7 +10,7 @@ export const bookAppointment = async (req: AuthRequest, res: Response) => {
 
   try {
     const id = uuidv4();
-    await knex.transaction(async (trx) => {
+    await knex.transaction(async (trx: Knex.Transaction) => {
       await trx("appointments").insert({
         id,
         business_id: businessId,
@@ -68,7 +69,7 @@ export const updateAppointment = async (req: AuthRequest, res: Response) => {
   const businessId = req.user?.business_id;
 
   try {
-    await knex.transaction(async (trx) => {
+    await knex.transaction(async (trx: Knex.Transaction) => {
       const updated = await trx("appointments")
         .where({ id, business_id: businessId })
         .update({

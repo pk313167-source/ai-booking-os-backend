@@ -3,6 +3,7 @@ import { AuthRequest } from "../middleware/auth";
 import { v4 as uuidv4 } from "uuid";
 import knex from "../db/knex";
 import Anthropic from "@anthropic-ai/sdk";
+import { Knex } from "knex";
 
 const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY || "dummy_key",
@@ -86,7 +87,7 @@ export const getChatHistory = async (req: AuthRequest, res: Response) => {
 
     const history = await knex("chat_messages")
       .where({ business_id: businessId })
-      .andWhere((builder) => {
+      .andWhere((builder: Knex.QueryBuilder) => {
         builder.where("contact_phone_or_email", contact.email).orWhere("contact_phone_or_email", contact.phone);
       })
       .orderBy("created_at", "asc");

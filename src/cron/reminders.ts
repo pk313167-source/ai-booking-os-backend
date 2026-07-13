@@ -42,7 +42,7 @@ export const initCronJobs = () => {
             const message = `Reminder: You have an appointment with ${business.name} at ${new Date(appointment.start_time).toLocaleString()}.`;
             
             // In a real scenario, you'd call Twilio here
-            if (process.env.TWILIO_ACCOUNT_SID) {
+            if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_ACCOUNT_SID !== "AC_dummy") {
                 await client.messages.create({
                     body: message,
                     from: twilioPhone,

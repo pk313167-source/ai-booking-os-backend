@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import knex from "../db/knex";
+import { Knex } from "knex";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -19,7 +20,7 @@ export const signup = async (req: Request, res: Response) => {
     const userId = uuidv4();
     const passwordHash = await bcrypt.hash(password, 10);
 
-    await knex.transaction(async (trx) => {
+    await knex.transaction(async (trx: Knex.Transaction) => {
       await trx("businesses").insert({
         id: businessId,
         name: businessName,
