@@ -38,11 +38,11 @@ const config: { [key: string]: Knex.Config } = {
     },
     pool: { min: 2, max: 10 },
     migrations: {
-      directory: path.join(__dirname, "db", "migrations"),
-      extension: "js",
+      directory: path.join(__dirname, "..", "src", "db", "migrations"),
+      extension: "ts",
     },
     seeds: {
-      directory: path.join(__dirname, "db", "seeds"),
+      directory: path.join(__dirname, "..", "src", "db", "seeds"),
     },
   },
 };
