@@ -8,11 +8,11 @@ npm install
 echo "Building project..."
 npm run build
 
-echo "Checking environment..."
-echo "NODE_ENV: $NODE_ENV"
+echo "Copying migrations to dist..."
+mkdir -p dist/src/db/migrations
+cp src/db/migrations/*.ts dist/src/db/migrations/
 
 echo "Running migrations..."
-# Use ts-node to run migrations using the TS knexfile
-./node_modules/.bin/knex migrate:latest --knexfile knexfile.ts --env production || { echo "Migration failed, but continuing build..."; }
+./node_modules/.bin/knex migrate:latest --knexfile knexfile.ts --env production
 
 echo "Build successful!"
