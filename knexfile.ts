@@ -1,5 +1,6 @@
 import type { Knex } from "knex";
 import dotenv from "dotenv";
+import path from "path";
 
 dotenv.config();
 
@@ -11,7 +12,7 @@ const config: { [key: string]: Knex.Config } = {
       ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
     },
     migrations: {
-      directory: "./src/db/migrations",
+      directory: path.join(__dirname, "src", "db", "migrations"),
       extension: "ts",
     },
   },
@@ -23,7 +24,7 @@ const config: { [key: string]: Knex.Config } = {
     },
     pool: { min: 2, max: 10 },
     migrations: {
-      directory: "./src/db/migrations",
+      directory: path.join(__dirname, "src", "db", "migrations"),
       extension: "ts",
     },
   },

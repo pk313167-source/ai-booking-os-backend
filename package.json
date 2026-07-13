@@ -1,21 +1,14 @@
 {
   "name": "ai-booking-os-backend",
   "version": "1.0.0",
-  "description": "AI Booking OS Backend",
+  "description": "Backend for AI Booking OS",
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",
-    "dev": "nodemon --watch \"src/**/*.ts\" --exec \"ts-node\" src/index.ts",
     "build": "tsc && cp knexfile.ts dist/ && cp -r src/db dist/src/",
-    "migrate": "knex migrate:latest --knexfile dist/knexfile.js"
-    "migrate:make": "knex migrate:make",
-    "seed": "knex seed:run",
-    "test": "jest",
-    "postinstall": "echo skip"
+    "migrate": "knex migrate:latest --knexfile dist/knexfile.js",
+    "test": "jest"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",
     "bcrypt": "^5.1.1",
@@ -31,7 +24,8 @@
     "pg": "^8.12.0",
     "sqlite3": "^5.1.7",
     "twilio": "^5.2.0",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "typescript": "^5.5.2"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
@@ -47,8 +41,6 @@
     "jest": "^30.4.2",
     "nodemon": "^3.1.4",
     "supertest": "^7.2.2",
-    "ts-jest": "^29.4.11",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.5.2"
+    "ts-jest": "^29.4.11"
   }
 }
