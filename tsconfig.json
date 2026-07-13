@@ -12,6 +12,6 @@
     "resolveJsonModule": true,
     "verbatimModuleSyntax": false
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "knexfile.ts"],
   "exclude": ["node_modules"]
 }

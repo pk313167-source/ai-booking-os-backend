@@ -23,8 +23,8 @@ const config: { [key: string]: Knex.Config } = {
     },
     pool: { min: 2, max: 10 },
     migrations: {
-      directory: "./src/db/migrations",
-      extension: "ts",
+      directory: "./dist/db/migrations",
+      extension: "js",
     },
   },
 };
