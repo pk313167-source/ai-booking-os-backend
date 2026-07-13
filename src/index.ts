@@ -17,13 +17,15 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false,
+}));
 app.use(cors());
 app.use(express.json());
 
 // Health Check
 app.get("/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  res.status(200).send("OK");
 });
 
 // Routes
@@ -33,12 +35,14 @@ app.use("/api", routes);
 app.use(errorHandler);
 
 // Initialize Cron Jobs
-initCronJobs();
-
-if (process.env.NODE_ENV !== "test") {
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-  });
+try {
+    initCronJobs();
+} catch (e) {
+    console.error("Failed to initialize cron jobs:", e);
 }
+
+const server = app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
 
 export default app;
