@@ -2,7 +2,7 @@ import { Knex } from "knex";
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable("businesses", (table) => {
-    table.uuid("id").primary();
+    table.string("id").primary();
     table.string("name", 255);
     table.string("phone", 20);
     table.jsonb("hours_json");
@@ -12,16 +12,16 @@ export async function up(knex: Knex): Promise<void> {
   });
 
   await knex.schema.createTable("users", (table) => {
-    table.uuid("id").primary();
-    table.uuid("business_id").references("id").inTable("businesses").onDelete("CASCADE");
+    table.string("id").primary();
+    table.string("business_id").references("id").inTable("businesses").onDelete("CASCADE");
     table.string("email", 255).unique();
     table.string("password_hash", 255);
     table.string("role", 50); // owner, staff
   });
 
   await knex.schema.createTable("contacts", (table) => {
-    table.uuid("id").primary();
-    table.uuid("business_id").references("id").inTable("businesses").onDelete("CASCADE");
+    table.string("id").primary();
+    table.string("business_id").references("id").inTable("businesses").onDelete("CASCADE");
     table.string("name", 255);
     table.string("phone", 20);
     table.string("email", 255);
@@ -30,17 +30,17 @@ export async function up(knex: Knex): Promise<void> {
   });
 
   await knex.schema.createTable("appointments", (table) => {
-    table.uuid("id").primary();
-    table.uuid("business_id").references("id").inTable("businesses").onDelete("CASCADE");
-    table.uuid("contact_id").references("id").inTable("contacts").onDelete("CASCADE");
+    table.string("id").primary();
+    table.string("business_id").references("id").inTable("businesses").onDelete("CASCADE");
+    table.string("contact_id").references("id").inTable("contacts").onDelete("CASCADE");
     table.dateTime("start_time");
     table.dateTime("end_time");
     table.string("status", 50); // scheduled, completed, cancelled
   });
 
   await knex.schema.createTable("chat_messages", (table) => {
-    table.uuid("id").primary();
-    table.uuid("business_id").references("id").inTable("businesses").onDelete("CASCADE");
+    table.string("id").primary();
+    table.string("business_id").references("id").inTable("businesses").onDelete("CASCADE");
     table.string("contact_phone_or_email", 255);
     table.text("message");
     table.string("sender", 50); // customer, ai, staff
@@ -48,9 +48,9 @@ export async function up(knex: Knex): Promise<void> {
   });
 
   await knex.schema.createTable("reminder_jobs", (table) => {
-    table.uuid("id").primary();
-    table.uuid("business_id").references("id").inTable("businesses").onDelete("CASCADE");
-    table.uuid("appointment_id").references("id").inTable("appointments").onDelete("CASCADE");
+    table.string("id").primary();
+    table.string("business_id").references("id").inTable("businesses").onDelete("CASCADE");
+    table.string("appointment_id").references("id").inTable("appointments").onDelete("CASCADE");
     table.dateTime("scheduled_for");
     table.string("status", 50); // pending, sent
   });

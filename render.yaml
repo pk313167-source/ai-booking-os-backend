@@ -4,7 +4,7 @@ services:
     runtime: node
     region: oregon
     plan: starter
-    buildCommand: npm install && npm run build && ./node_modules/.bin/knex migrate:latest --knexfile knexfile.ts --env production
+    buildCommand: npm install && npm run build && sleep 5 && ./node_modules/.bin/knex migrate:latest --knexfile knexfile.ts --env production
     startCommand: node dist/index.js
     envVars:
       - key: NODE_ENV
