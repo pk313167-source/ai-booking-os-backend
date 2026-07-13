@@ -5,17 +5,14 @@ dotenv.config();
 
 const config: { [key: string]: Knex.Config } = {
   development: {
-    client: "sqlite3",
-    useNullAsDefault: true,
-    connection: {
-      filename: "./dev.sqlite3"
-    },
+    client: "pg",
+    connection: process.env.DATABASE_URL || "postgres://localhost:5432/ai_booking_os",
     migrations: {
       directory: "./src/db/migrations",
       extension: "ts",
     },
     seeds: {
-      directory: "./db/seeds",
+      directory: "./src/db/seeds",
     },
   },
   test: {
@@ -31,14 +28,17 @@ const config: { [key: string]: Knex.Config } = {
   },
   production: {
     client: "pg",
-    connection: process.env.DATABASE_URL,
+    connection: {
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }
+    },
     pool: { min: 2, max: 10 },
     migrations: {
-      directory: "./src/db/migrations",
-      extension: "ts",
+      directory: "./dist/db/migrations",
+      extension: "js",
     },
     seeds: {
-      directory: "./db/seeds",
+      directory: "./dist/db/seeds",
     },
   },
 };

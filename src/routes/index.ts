@@ -11,6 +11,11 @@ import { validate } from "../middleware/validate";
 
 const router = Router();
 
+// Health Check
+router.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 // Auth
 router.post("/auth/signup", [
   body("email").isEmail(),
