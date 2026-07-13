@@ -11,11 +11,11 @@ const config: { [key: string]: Knex.Config } = {
       ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
     },
     migrations: {
-      directory: "./db/migrations",
+      directory: "./src/db/migrations",
       extension: "ts",
     },
     seeds: {
-      directory: "./db/seeds",
+      directory: "./src/db/seeds",
     },
   },
   test: {
@@ -25,7 +25,7 @@ const config: { [key: string]: Knex.Config } = {
       filename: ":memory:"
     },
     migrations: {
-      directory: "./db/migrations",
+      directory: "./src/db/migrations",
       extension: "ts",
     },
   },
@@ -37,11 +37,11 @@ const config: { [key: string]: Knex.Config } = {
     },
     pool: { min: 2, max: 10 },
     migrations: {
-      directory: "./src/db/migrations",
-      extension: "ts",
+      directory: "./dist/db/migrations",
+      extension: "js",
     },
     seeds: {
-      directory: "./src/db/seeds",
+      directory: "./dist/db/seeds",
     },
   },
 };
