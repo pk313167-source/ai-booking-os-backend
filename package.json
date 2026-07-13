@@ -6,12 +6,12 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "nodemon --watch \"src/**/*.ts\" --exec \"ts-node\" src/index.ts",
-    "build": "tsc",
+    "build": "tsc && cp knexfile.ts dist/ && cp -r src/db dist/src/",
     "migrate": "knex migrate:latest --knexfile dist/knexfile.js"
     "migrate:make": "knex migrate:make",
     "seed": "knex seed:run",
     "test": "jest",
-    "postinstall": "tsc"
+    "postinstall": "echo skip"
   },
   "keywords": [],
   "author": "",
