@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",
-    "build": "npx tsc && cp knexfile.ts dist/ && cp -r src/db dist/src/",
-    "migrate": "knex migrate:latest --knexfile dist/knexfile.js",
+    "build": "tsc",
+    "migrate": "knex migrate:latest",
     "test": "jest"
   },
   "dependencies": {
