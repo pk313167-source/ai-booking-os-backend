@@ -1,8 +1,4 @@
 {
-  "buildCommand": "pnpm install && cd frontend && pnpm install && pnpm run build",
-  "outputDirectory": "frontend/dist/public",
-  "cleanUrls": true,
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  "rootDirectory": "frontend",
+  "framework": "vite"
 }
