@@ -1,0 +1,11 @@
+{
+  "name": "ai-booking-os-frontend",
+  "framework": "vite",
+  "rootDirectory": "frontend",
+  "buildCommand": "pnpm run build",
+  "outputDirectory": "dist/public",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
