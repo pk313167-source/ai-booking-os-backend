@@ -1,12 +1,12 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import dotenv from "dotenv";
 import routes from "./routes";
 import { errorHandler } from "./middleware/error";
 import { initCronJobs } from "./cron/reminders";
-
-dotenv.config();
 
 if (!process.env.JWT_SECRET) {
   console.warn("JWT_SECRET is not defined. Using a dummy secret for now.");
