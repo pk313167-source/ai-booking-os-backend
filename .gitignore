@@ -1,6 +1,5 @@
 node_modules/
 dist/
-.env
 dev.sqlite3
 *.js.map
 *.d.ts.map
