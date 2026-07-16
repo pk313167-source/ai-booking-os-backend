@@ -2,20 +2,20 @@ import type { Knex } from "knex";
 import dotenv from "dotenv";
 dotenv.config();
 
-const NEON_DATABASE_URL = "postgresql://neondb_owner:npg_lwF1mtVxGT4q@ep-billowing-bread-aj1r9djt-pooler.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require";
-const databaseUrl = process.env.DATABASE_URL || NEON_DATABASE_URL;
+const databaseUrl = "postgresql://neondb_owner:npg_lwF1mtVxGT4q@ep-billowing-bread-aj1r9djt-pooler.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require";
 
 const config: { [key: string]: Knex.Config } = {
   development: {
     client: "pg",
     connection: {
       connectionString: databaseUrl,
-      ssl: databaseUrl.includes("neon.tech") ? { rejectUnauthorized: false } : false
+      ssl: { rejectUnauthorized: false }
     },
     migrations: {
       directory: "./src/db/migrations",
       extension: "ts",
-    },\n  },
+    },
+  },
   production: {
     client: "pg",
     connection: {

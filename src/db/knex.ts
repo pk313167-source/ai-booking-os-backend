@@ -2,15 +2,15 @@ import knex from "knex";
 
 const environment = process.env.NODE_ENV || "development";
 
-const NEON_DATABASE_URL = "postgresql://neondb_owner:npg_lwF1mtVxGT4q@ep-billowing-bread-aj1r9djt-pooler.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require";
-const databaseUrl = process.env.DATABASE_URL || NEON_DATABASE_URL;
+// Force Neon production database URL (Render's internal DB is not provisioned)
+const databaseUrl = "postgresql://neondb_owner:npg_lwF1mtVxGT4q@ep-billowing-bread-aj1r9djt-pooler.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require";
 
 const config = {
   development: {
     client: "pg",
     connection: {
       connectionString: databaseUrl,
-      ssl: databaseUrl.includes("neon.tech") ? { rejectUnauthorized: false } : false
+      ssl: { rejectUnauthorized: false }
     },
     migrations: {
       directory: "./src/db/migrations",

@@ -23,8 +23,3 @@ services:
         sync: false
       - key: CLAUDE_API_KEY
         sync: false
-databases:
-  - name: ai-booking-os-db
-    plan: starter
-    databaseName: ai_booking_os
-    postgresMajorVersion: "15"
