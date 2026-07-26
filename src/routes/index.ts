@@ -6,8 +6,15 @@ import { bookAppointment, listAppointments, updateAppointment } from "../control
 import { sendMessage, getChatHistory } from "../controllers/chat.controller";
 import { saveSettings, getSettings } from "../controllers/settings.controller";
 import { authenticateToken } from "../middleware/auth";
-import { body } from "express-validator";
+import { body, query } from "express-validator";
 import { validate } from "../middleware/validate";
+
+// New core module controllers
+import { createService, listServices, getService, updateService, deleteService } from "../controllers/services.controller";
+import { createCustomer, listCustomers, getCustomer, updateCustomer, deleteCustomer } from "../controllers/customers.controller";
+import { createStaff, listStaff, getStaff, updateStaff, deleteStaff } from "../controllers/staff.controller";
+import { createBooking, listBookings, getBooking, updateBooking, deleteBooking } from "../controllers/bookings.controller";
+import { getProfile, updateProfile } from "../controllers/profile.controller";
 
 const router = Router();
 
@@ -28,6 +35,10 @@ router.post("/auth/login", [
   body("password").exists(),
   validate
 ], login);
+
+// User Profile
+router.get("/auth/profile", authenticateToken, getProfile);
+router.put("/auth/profile", authenticateToken, updateProfile);
 
 // Dashboard
 router.get("/dashboard", authenticateToken, getDashboard);
@@ -62,5 +73,61 @@ router.get("/chat/:contactId", authenticateToken, getChatHistory);
 // Settings
 router.post("/settings", authenticateToken, saveSettings);
 router.get("/settings", authenticateToken, getSettings);
+
+// Services
+router.post("/services", authenticateToken, [
+  body("name").notEmpty().withMessage("Service name is required"),
+  body("duration").isInt({ min: 1 }).withMessage("Duration must be a positive integer"),
+  body("price").isFloat({ min: 0 }).withMessage("Price must be a positive number"),
+  validate
+], createService);
+router.get("/services", authenticateToken, listServices);
+router.get("/services/:id", authenticateToken, getService);
+router.put("/services/:id", authenticateToken, [
+  body("duration").optional().isInt({ min: 1 }).withMessage("Duration must be a positive integer"),
+  body("price").optional().isFloat({ min: 0 }).withMessage("Price must be a positive number"),
+  validate
+], updateService);
+router.delete("/services/:id", authenticateToken, deleteService);
+
+// Customers
+router.post("/customers", authenticateToken, [
+  body("name").notEmpty().withMessage("Customer name is required"),
+  body("email").optional().isEmail().withMessage("Invalid email format"),
+  validate
+], createCustomer);
+router.get("/customers", authenticateToken, listCustomers);
+router.get("/customers/:id", authenticateToken, getCustomer);
+router.put("/customers/:id", authenticateToken, [
+  body("email").optional().isEmail().withMessage("Invalid email format"),
+  validate
+], updateCustomer);
+router.delete("/customers/:id", authenticateToken, deleteCustomer);
+
+// Staff
+router.post("/staff", authenticateToken, [
+  body("name").notEmpty().withMessage("Staff name is required"),
+  validate
+], createStaff);
+router.get("/staff", authenticateToken, listStaff);
+router.get("/staff/:id", authenticateToken, getStaff);
+router.put("/staff/:id", authenticateToken, updateStaff);
+router.delete("/staff/:id", authenticateToken, deleteStaff);
+
+// Bookings
+router.post("/bookings", authenticateToken, [
+  body("customerId").notEmpty().withMessage("customerId is required"),
+  body("date").notEmpty().withMessage("date is required"),
+  body("time").notEmpty().withMessage("time is required"),
+  body("duration").isInt({ min: 1 }).withMessage("duration must be a positive integer"),
+  validate
+], createBooking);
+router.get("/bookings", authenticateToken, listBookings);
+router.get("/bookings/:id", authenticateToken, getBooking);
+router.put("/bookings/:id", authenticateToken, [
+  body("duration").optional().isInt({ min: 1 }).withMessage("duration must be a positive integer"),
+  validate
+], updateBooking);
+router.delete("/bookings/:id", authenticateToken, deleteBooking);
 
 export default router;
