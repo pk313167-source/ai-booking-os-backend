@@ -1,9 +1,13 @@
 {
-  "framework": "vite",
   "buildCommand": "pnpm run build",
   "outputDirectory": "dist/public",
-  "cleanUrls": true,
+  "env": {
+    "VITE_FRONTEND_FORGE_API_URL": "https://ai-booking-os-backend.onrender.com"
+  },
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
