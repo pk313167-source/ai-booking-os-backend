@@ -20,8 +20,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
     if (token && userData) {
-      setIsAuthenticated(true);
-      setUser(JSON.parse(userData));
+      try {
+        setIsAuthenticated(true);
+        setUser(JSON.parse(userData));
+      } catch {
+        // Corrupted data, clear it
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+      }
     }
     setLoading(false);
   }, []);
@@ -30,18 +36,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { authAPI } = await import("@/lib/api");
     const response = await authAPI.login(email, password);
     localStorage.setItem("token", response.data.token);
-    localStorage.setItem("user", JSON.stringify(response.data.user));
+    // Backend returns { token, userId, businessId } - construct a user object
+    const userData = {
+      id: response.data.userId,
+      businessId: response.data.businessId,
+      businessName: "", // Will be loaded from profile
+      email: email,
+      role: "owner",
+    };
+    localStorage.setItem("user", JSON.stringify(userData));
     setIsAuthenticated(true);
-    setUser(response.data.user);
+    setUser(userData);
+
+    // Fetch full profile to get businessName
+    try {
+      const { default: apiClient } = await import("@/lib/api");
+      const profileResp = await apiClient.get("/auth/profile");
+      const profileData = profileResp.data;
+      const updatedUser = {
+        ...userData,
+        email: profileData.email,
+        businessName: profileData.business_name || "",
+        role: profileData.role,
+      };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
+    } catch {
+      // Profile fetch failed, use basic user data
+    }
   };
 
   const signup = async (email: string, password: string, businessName: string) => {
     const { authAPI } = await import("@/lib/api");
     const response = await authAPI.signup(email, password, businessName);
     localStorage.setItem("token", response.data.token);
-    localStorage.setItem("user", JSON.stringify(response.data.user));
+    // Backend returns { token, userId, businessId } - construct a user object
+    const userData = {
+      id: response.data.userId,
+      businessId: response.data.businessId,
+      businessName: businessName,
+      email: email,
+      role: "owner",
+    };
+    localStorage.setItem("user", JSON.stringify(userData));
     setIsAuthenticated(true);
-    setUser(response.data.user);
+    setUser(userData);
   };
 
   const logout = () => {

@@ -13,6 +13,7 @@ import Contacts from "./pages/Contacts";
 import Appointments from "./pages/Appointments";
 import Chat from "./pages/Chat";
 import Settings from "./pages/Settings";
+import SubscriptionPlans from "./pages/SubscriptionPlans";
 
 function Router() {
   return (
@@ -51,6 +52,13 @@ function Router() {
         {() => (
           <ProtectedRoute>
             <Settings />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/plans">
+        {() => (
+          <ProtectedRoute>
+            <SubscriptionPlans />
           </ProtectedRoute>
         )}
       </Route>

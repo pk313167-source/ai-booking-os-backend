@@ -15,7 +15,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
 
   try {
     const business = await knex("businesses").where({ id: businessId }).first();
-    const faq = business.faq_json || {};
+    const faq = business?.faq_json || {};
 
     // Save customer message
     await knex("chat_messages").insert({
@@ -28,7 +28,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     });
 
     // Claude AI logic
-    const prompt = `You are an AI assistant for ${business.name}. 
+    const prompt = `You are an AI assistant for ${business?.name || "the business"}. 
     Use the following FAQ to answer the customer's question: ${JSON.stringify(faq)}.
     If you can answer based on the FAQ, provide a helpful response.
     If you cannot answer based on the FAQ, reply with "ESC_STAFF".
@@ -38,12 +38,17 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     if (process.env.NODE_ENV === "test") {
       aiContent = { type: "text", text: "Hello! I am your AI assistant. How can I help you today?" };
     } else {
-      const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20240620",
-        max_tokens: 1024,
-        messages: [{ role: "user", content: prompt }],
-      });
-      aiContent = response.content[0];
+      try {
+        const response = await anthropic.messages.create({
+          model: "claude-3-5-sonnet-20240620",
+          max_tokens: 1024,
+          messages: [{ role: "user", content: prompt }],
+        });
+        aiContent = response.content[0];
+      } catch (aiError) {
+        console.error("Anthropic API error:", aiError);
+        aiContent = { type: "text", text: "I'm sorry, I'm having trouble responding right now. Please try again later." };
+      }
     }
     let aiMessage = "";
     
@@ -54,7 +59,6 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     }
 
     if (aiMessage.includes("ESC_STAFF")) {
-      // Flag for staff escalation (in a real app, you might set a flag in DB)
       aiMessage = "I'm sorry, I couldn't find the answer to that. A staff member will get back to you soon.";
     }
 
@@ -92,8 +96,17 @@ export const getChatHistory = async (req: AuthRequest, res: Response) => {
       })
       .orderBy("created_at", "asc");
 
-    res.json(history);
+    // Map to frontend-compatible format
+    const mapped = history.map((msg: any) => ({
+      id: msg.id,
+      content: msg.message,
+      sender: msg.sender === "customer" ? "user" : msg.sender,
+      timestamp: msg.created_at,
+    }));
+
+    res.json(mapped);
   } catch (error) {
+    console.error("Error fetching chat history:", error);
     res.status(500).json({ message: "Error fetching chat history", error });
   }
 };

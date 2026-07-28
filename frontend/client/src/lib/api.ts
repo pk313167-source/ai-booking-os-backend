@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from "axios";
 
-const API_BASE_URL = "https://ai-booking-os-backend.onrender.com/api";
+// Use environment variable for API URL, fallback to production URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://ai-booking-os-backend.onrender.com/api";
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -24,6 +25,7 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
+      localStorage.removeItem("user");
       window.location.href = "/login";
     }
     return Promise.reject(error);
@@ -51,7 +53,7 @@ export const contactsAPI = {
 
 export const appointmentsAPI = {
   bookAppointment: (contactId: string, startTime: string, endTime: string, title?: string) =>
-    apiClient.post("/appointments", { contactId, startTime, endTime, title }),
+    apiClient.post("/appointments", { contactId, startTime, endTime }),
   listAppointments: () => apiClient.get("/appointments"),
   updateAppointment: (id: string, data: any) =>
     apiClient.patch(`/appointments/${id}`, data),
@@ -67,6 +69,54 @@ export const chatAPI = {
 export const settingsAPI = {
   saveSettings: (data: any) => apiClient.post("/settings", data),
   getSettings: () => apiClient.get("/settings"),
+};
+
+export const bookingsAPI = {
+  createBooking: (data: any) => apiClient.post("/bookings", data),
+  listBookings: () => apiClient.get("/bookings"),
+  getBooking: (id: string) => apiClient.get(`/bookings/${id}`),
+  updateBooking: (id: string, data: any) =>
+    apiClient.put(`/bookings/${id}`, data),
+  deleteBooking: (id: string) => apiClient.delete(`/bookings/${id}`),
+};
+
+export const customersAPI = {
+  createCustomer: (data: any) => apiClient.post("/customers", data),
+  listCustomers: () => apiClient.get("/customers"),
+  getCustomer: (id: string) => apiClient.get(`/customers/${id}`),
+  updateCustomer: (id: string, data: any) =>
+    apiClient.put(`/customers/${id}`, data),
+  deleteCustomer: (id: string) => apiClient.delete(`/customers/${id}`),
+};
+
+export const servicesAPI = {
+  createService: (data: any) => apiClient.post("/services", data),
+  listServices: () => apiClient.get("/services"),
+  getService: (id: string) => apiClient.get(`/services/${id}`),
+  updateService: (id: string, data: any) =>
+    apiClient.put(`/services/${id}`, data),
+  deleteService: (id: string) => apiClient.delete(`/services/${id}`),
+};
+
+export const staffAPI = {
+  createStaff: (data: any) => apiClient.post("/staff", data),
+  listStaff: () => apiClient.get("/staff"),
+  getStaff: (id: string) => apiClient.get(`/staff/${id}`),
+  updateStaff: (id: string, data: any) =>
+    apiClient.put(`/staff/${id}`, data),
+  deleteStaff: (id: string) => apiClient.delete(`/staff/${id}`),
+};
+
+export const profileAPI = {
+  getProfile: () => apiClient.get("/auth/profile"),
+  updateProfile: (data: any) => apiClient.put("/auth/profile", data),
+};
+
+export const paymentsAPI = {
+  createCheckoutSession: (planId: string) =>
+    apiClient.post("/payments/create-checkout-session", { planId }),
+  getSubscriptionStatus: () =>
+    apiClient.get("/payments/subscription-status"),
 };
 
 export default apiClient;

@@ -2,6 +2,10 @@ import { Response } from "express";
 import { AuthRequest } from "../middleware/auth";
 import { v4 as uuidv4 } from "uuid";
 import knex from "../db/knex";
+import {
+  sendBookingConfirmationEmail,
+  sendBookingCancellationEmail,
+} from "./notifications.controller";
 
 export const createBooking = async (req: AuthRequest, res: Response) => {
   const { customerId, serviceId, staffId, date, time, duration, status, notes } = req.body;
@@ -18,7 +22,7 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
     if (!time) {
       return res.status(400).json({ message: "time is required" });
     }
-    if (!duration || duration <= 0) {
+    if (duration === undefined || duration === null || duration <= 0) {
       return res.status(400).json({ message: "duration must be a positive number" });
     }
 
@@ -63,13 +67,11 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
           business_id: businessId,
           staff_id: staffId,
           date,
-          status: "confirmed",
         })
-        .whereNot("status", "cancelled")
+        .whereNot({ status: "cancelled" })
         .first();
 
       if (conflictingBooking) {
-        // Check if time slots overlap
         const existingStart = timeToMinutes(conflictingBooking.time);
         const existingEnd = existingStart + conflictingBooking.duration;
         const newStart = timeToMinutes(time);
@@ -108,11 +110,31 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
         last_visit: new Date(),
       });
 
+    // Enrich and return
     const booking = await knex("bookings").where({ id }).first();
-    res.status(201).json(booking);
-  } catch (error) {
-    console.error("Error creating booking:", error);
-    res.status(500).json({ message: "Error creating booking", error });
+    const enriched = enrichBooking(booking);
+
+    // Send booking confirmation email (non-blocking)
+    if (customer.email) {
+      const serviceName = serviceId 
+        ? await knex("services").where({ id: serviceId }).select("name").first().then((s: any) => s?.name || undefined)
+        : undefined;
+      sendBookingConfirmationEmail(
+        businessId,
+        customer.email,
+        customer.name,
+        date,
+        time,
+        serviceName
+      ).catch(err => {
+        console.error("Failed to send booking confirmation email:", err);
+      });
+    }
+
+    res.status(201).json(enriched);
+  } catch (error: any) {
+    console.error("Error creating booking:", error?.message || error);
+    res.status(500).json({ message: "Error creating booking" });
   }
 };
 
@@ -136,31 +158,12 @@ export const listBookings = async (req: AuthRequest, res: Response) => {
     query = query.orderBy("date", "desc").orderBy("time", "desc");
 
     const bookings = await query;
-
-    // Enrich with related data
-    const enriched = await Promise.all(
-      bookings.map(async (booking: any) => {
-        const enriched = { ...booking };
-        if (booking.customer_id) {
-          const customer = await knex("customers").where({ id: booking.customer_id }).first();
-          enriched.customer_name = customer?.name || null;
-        }
-        if (booking.service_id) {
-          const service = await knex("services").where({ id: booking.service_id }).first();
-          enriched.service_name = service?.name || null;
-        }
-        if (booking.staff_id) {
-          const staff = await knex("staff").where({ id: booking.staff_id }).first();
-          enriched.staff_name = staff?.name || null;
-        }
-        return enriched;
-      })
-    );
+    const enriched = bookings.map(enrichBooking);
 
     res.json(enriched);
-  } catch (error) {
-    console.error("Error listing bookings:", error);
-    res.status(500).json({ message: "Error listing bookings", error });
+  } catch (error: any) {
+    console.error("Error listing bookings:", error?.message || error);
+    res.status(500).json({ message: "Error listing bookings" });
   }
 };
 
@@ -177,25 +180,10 @@ export const getBooking = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    // Enrich with related data
-    const enriched = { ...booking };
-    if (booking.customer_id) {
-      const customer = await knex("customers").where({ id: booking.customer_id }).first();
-      enriched.customer_name = customer?.name || null;
-    }
-    if (booking.service_id) {
-      const service = await knex("services").where({ id: booking.service_id }).first();
-      enriched.service_name = service?.name || null;
-    }
-    if (booking.staff_id) {
-      const staff = await knex("staff").where({ id: booking.staff_id }).first();
-      enriched.staff_name = staff?.name || null;
-    }
-
-    res.json(enriched);
-  } catch (error) {
-    console.error("Error getting booking:", error);
-    res.status(500).json({ message: "Error getting booking", error });
+    res.json(enrichBooking(booking));
+  } catch (error: any) {
+    console.error("Error getting booking:", error?.message || error);
+    res.status(500).json({ message: "Error getting booking" });
   }
 };
 
@@ -273,10 +261,26 @@ export const updateBooking = async (req: AuthRequest, res: Response) => {
       .update(updateData);
 
     const updated = await knex("bookings").where({ id }).first();
-    res.json(updated);
-  } catch (error) {
-    console.error("Error updating booking:", error);
-    res.status(500).json({ message: "Error updating booking", error });
+    // Send cancellation email if status changed to cancelled
+    if (status === "cancelled" && existing.status !== "cancelled") {
+      const customer = await knex("customers").where({ id: existing.customer_id }).first();
+      if (customer?.email) {
+        sendBookingCancellationEmail(
+          businessId,
+          customer.email,
+          customer.name,
+          newDate,
+          newTime
+        ).catch(err => {
+          console.error("Failed to send cancellation email:", err);
+        });
+      }
+    }
+
+    res.json(enrichBooking(updated));
+  } catch (error: any) {
+    console.error("Error updating booking:", error?.message || error);
+    res.status(500).json({ message: "Error updating booking" });
   }
 };
 
@@ -305,11 +309,30 @@ export const deleteBooking = async (req: AuthRequest, res: Response) => {
     }
 
     res.json({ message: "Booking deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting booking:", error);
-    res.status(500).json({ message: "Error deleting booking", error });
+  } catch (error: any) {
+    console.error("Error deleting booking:", error?.message || error);
+    res.status(500).json({ message: "Error deleting booking" });
   }
 };
+
+// Helper: enrich booking with related data
+async function enrichBooking(booking: any) {
+  if (!booking) return booking;
+  const enriched = { ...booking };
+  if (booking.customer_id) {
+    const customer = await knex("customers").where({ id: booking.customer_id }).first();
+    enriched.customer_name = customer?.name || null;
+  }
+  if (booking.service_id) {
+    const service = await knex("services").where({ id: booking.service_id }).first();
+    enriched.service_name = service?.name || null;
+  }
+  if (booking.staff_id) {
+    const staff = await knex("staff").where({ id: booking.staff_id }).first();
+    enriched.staff_name = staff?.name || null;
+  }
+  return enriched;
+}
 
 // Helper: convert HH:MM to minutes from midnight
 function timeToMinutes(time: string): number {

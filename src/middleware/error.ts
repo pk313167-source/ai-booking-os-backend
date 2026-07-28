@@ -1,14 +1,15 @@
 import { Request, Response, NextFunction } from "express";
 
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
-  console.error(err.stack);
+  console.error("Error:", err?.stack || err?.message || err);
   
-  const status = err.status || 500;
-  const message = err.message || "Something went wrong on the server";
+  const status = err?.status || err?.statusCode || 500;
+  const message = err?.message || "Something went wrong on the server";
   
+  // Don't send stack traces in production
   res.status(status).json({
     status: "error",
     message,
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack })
+    ...(process.env.NODE_ENV === "development" && { stack: err?.stack }),
   });
 };

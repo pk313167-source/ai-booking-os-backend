@@ -43,8 +43,23 @@ export const bookAppointment = async (req: AuthRequest, res: Response) => {
       ]);
     });
 
-    res.status(201).json({ id, contactId, startTime, endTime });
+    // Fetch the created appointment with contact name
+    const appointment = await knex("appointments")
+      .join("contacts", "appointments.contact_id", "contacts.id")
+      .where("appointments.id", id)
+      .select("appointments.*", "contacts.name as contact_name")
+      .first();
+
+    res.status(201).json({
+      id: appointment.id,
+      contactId: appointment.contact_id,
+      contactName: appointment.contact_name,
+      startTime: appointment.start_time,
+      endTime: appointment.end_time,
+      status: appointment.status,
+    });
   } catch (error) {
+    console.error("Error booking appointment:", error);
     res.status(500).json({ message: "Error booking appointment", error });
   }
 };
@@ -57,8 +72,20 @@ export const listAppointments = async (req: AuthRequest, res: Response) => {
       .join("contacts", "appointments.contact_id", "contacts.id")
       .where("appointments.business_id", businessId)
       .select("appointments.*", "contacts.name as contact_name");
-    res.json(appointments);
+
+    // Map to camelCase for frontend
+    const mapped = appointments.map((appt: any) => ({
+      id: appt.id,
+      contactId: appt.contact_id,
+      contactName: appt.contact_name,
+      startTime: appt.start_time,
+      endTime: appt.end_time,
+      status: appt.status,
+    }));
+
+    res.json(mapped);
   } catch (error) {
+    console.error("Error listing appointments:", error);
     res.status(500).json({ message: "Error listing appointments", error });
   }
 };
@@ -69,17 +96,24 @@ export const updateAppointment = async (req: AuthRequest, res: Response) => {
   const businessId = req.user?.business_id;
 
   try {
-    await knex.transaction(async (trx: Knex.Transaction) => {
-      const updated = await trx("appointments")
-        .where({ id, business_id: businessId })
-        .update({
-          start_time: startTime ? new Date(startTime) : undefined,
-          end_time: endTime ? new Date(endTime) : undefined,
-          status,
-        });
+    const appointment = await knex("appointments")
+      .where({ id, business_id: businessId })
+      .first();
 
-      if (!updated) {
-        throw new Error("Appointment not found");
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    await knex.transaction(async (trx: Knex.Transaction) => {
+      const updateData: any = {};
+      if (startTime) updateData.start_time = new Date(startTime);
+      if (endTime) updateData.end_time = new Date(endTime);
+      if (status) updateData.status = status;
+
+      if (Object.keys(updateData).length > 0) {
+        await trx("appointments")
+          .where({ id, business_id: businessId })
+          .update(updateData);
       }
 
       if (startTime) {
@@ -112,11 +146,26 @@ export const updateAppointment = async (req: AuthRequest, res: Response) => {
       }
     });
 
-    res.json({ message: "Appointment updated successfully" });
+    // Return the updated appointment
+    const updated = await knex("appointments")
+      .join("contacts", "appointments.contact_id", "contacts.id")
+      .where("appointments.id", id)
+      .select("appointments.*", "contacts.name as contact_name")
+      .first();
+
+    res.json({
+      id: updated.id,
+      contactId: updated.contact_id,
+      contactName: updated.contact_name,
+      startTime: updated.start_time,
+      endTime: updated.end_time,
+      status: updated.status,
+    });
   } catch (error: any) {
     if (error.message === "Appointment not found") {
       return res.status(404).json({ message: error.message });
     }
+    console.error("Error updating appointment:", error);
     res.status(500).json({ message: "Error updating appointment", error });
   }
 };

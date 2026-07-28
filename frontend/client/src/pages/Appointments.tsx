@@ -16,7 +16,6 @@ export default function Appointments() {
   const [contactId, setContactId] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
-  const [title, setTitle] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -40,12 +39,11 @@ export default function Appointments() {
   const handleAddAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await appointmentsAPI.bookAppointment(contactId, startTime, endTime, title);
+      await appointmentsAPI.bookAppointment(contactId, startTime, endTime);
       toast.success("Appointment booked successfully");
       setContactId("");
       setStartTime("");
       setEndTime("");
-      setTitle("");
       setShowForm(false);
       fetchData();
     } catch (error: any) {
@@ -53,8 +51,13 @@ export default function Appointments() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return "N/A";
+    try {
+      return new Date(dateString).toLocaleString();
+    } catch {
+      return "N/A";
+    }
   };
 
   return (
@@ -85,7 +88,7 @@ export default function Appointments() {
                 <select
                   value={contactId}
                   onChange={(e) => setContactId(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-md"
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background"
                   required
                 >
                   <option value="">Select a contact</option>
@@ -95,14 +98,6 @@ export default function Appointments() {
                     </option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Title</label>
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Meeting title"
-                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Start Time</label>
@@ -137,9 +132,9 @@ export default function Appointments() {
             <Card key={appt.id} className="p-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="font-semibold">{appt.title || "Appointment"}</h3>
+                  <h3 className="font-semibold">{appt.contactName || "Appointment"}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {formatDate(appt.startTime)} - {formatDate(appt.endTime)}
+                    {formatDateTime(appt.startTime)} - {formatDateTime(appt.endTime)}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
                     Status: {appt.status || "scheduled"}
@@ -153,6 +148,12 @@ export default function Appointments() {
         {appointments.length === 0 && !loading && (
           <Card className="p-12 text-center">
             <p className="text-muted-foreground">No appointments yet. Book one to get started.</p>
+          </Card>
+        )}
+
+        {loading && (
+          <Card className="p-12 text-center">
+            <p className="text-muted-foreground">Loading appointments...</p>
           </Card>
         )}
       </main>

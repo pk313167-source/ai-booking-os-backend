@@ -16,6 +16,16 @@ import { createStaff, listStaff, getStaff, updateStaff, deleteStaff } from "../c
 import { createBooking, listBookings, getBooking, updateBooking, deleteBooking } from "../controllers/bookings.controller";
 import { getProfile, updateProfile } from "../controllers/profile.controller";
 
+// Payment and notification controllers
+import {
+  getPlans,
+  createCheckoutSession,
+  handleWebhook,
+  getSubscriptionStatus,
+  getBillingPortal,
+} from "../controllers/payments.controller";
+import { testEmail } from "../controllers/notifications.controller";
+
 const router = Router();
 
 // Health Check
@@ -129,5 +139,19 @@ router.put("/bookings/:id", authenticateToken, [
   validate
 ], updateBooking);
 router.delete("/bookings/:id", authenticateToken, deleteBooking);
+
+// Payments
+router.get("/payments/plans", getPlans);
+router.post("/payments/create-checkout-session", authenticateToken, createCheckoutSession);
+router.get("/payments/subscription-status", authenticateToken, getSubscriptionStatus);
+router.post("/payments/billing-portal", authenticateToken, getBillingPortal);
+// Webhook must not require authentication (Stripe sends its own signature)
+router.post("/payments/webhook", (req, res, next) => {
+  // Ensure raw body is available for Stripe signature verification
+  handleWebhook(req, res);
+});
+
+// Notifications
+router.post("/notifications/test-email", authenticateToken, testEmail);
 
 export default router;

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { chatAPI, contactsAPI } from "@/lib/api";
 import { toast } from "sonner";
-import { Send, ArrowLeft } from "lucide-react";
+import { Send, ArrowLeft, Loader2 } from "lucide-react";
 
 export default function Chat() {
   const [, navigate] = useLocation();
@@ -14,6 +14,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<any[]>([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     fetchContacts();
@@ -52,14 +53,30 @@ export default function Chat() {
     e.preventDefault();
     if (!message.trim() || !selectedContact) return;
 
+    setSending(true);
     try {
       const contact = contacts.find((c) => c.id === selectedContact);
-      await chatAPI.sendMessage(contact?.phone || contact?.email, message);
+      const response = await chatAPI.sendMessage(contact?.phone || contact?.email, message);
+      // The response is { reply: aiMessage }, add it to messages
+      const userMsg = {
+        id: Date.now().toString(),
+        content: message,
+        sender: "user",
+        timestamp: new Date().toISOString(),
+      };
+      const aiMsg = {
+        id: (Date.now() + 1).toString(),
+        content: response.data.reply,
+        sender: "ai",
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, userMsg, aiMsg]);
       toast.success("Message sent");
       setMessage("");
-      fetchMessages();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to send message");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -96,6 +113,9 @@ export default function Chat() {
                   <p className="text-xs text-muted-foreground">{contact.phone}</p>
                 </button>
               ))}
+              {contacts.length === 0 && !loading && (
+                <p className="text-sm text-muted-foreground">No contacts found. Add contacts first.</p>
+              )}
             </div>
           </Card>
 
@@ -106,21 +126,21 @@ export default function Chat() {
                 <div className="space-y-4">
                   {messages.map((msg, idx) => (
                     <div
-                      key={idx}
+                      key={msg.id || idx}
                       className={`flex ${
                         msg.sender === "user" ? "justify-end" : "justify-start"
                       }`}
                     >
                       <div
-                        className={`max-w-xs px-4 py-2 rounded-lg ${
+                        className={`max-w-[80%] px-4 py-2 rounded-lg ${
                           msg.sender === "user"
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted text-foreground"
                         }`}
                       >
-                        <p className="text-sm">{msg.content}</p>
+                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                         <p className="text-xs opacity-70 mt-1">
-                          {new Date(msg.timestamp).toLocaleTimeString()}
+                          {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ""}
                         </p>
                       </div>
                     </div>
@@ -143,14 +163,18 @@ export default function Chat() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type a message..."
-                disabled={!selectedContact}
+                disabled={!selectedContact || sending}
               />
               <Button
                 type="submit"
-                disabled={!selectedContact || !message.trim()}
+                disabled={!selectedContact || !message.trim() || sending}
                 size="icon"
               >
-                <Send className="w-4 h-4" />
+                {sending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
               </Button>
             </form>
           </div>

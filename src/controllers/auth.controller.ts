@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import knex from "../db/knex";
 import { Knex } from "knex";
+import { sendWelcomeEmail } from "../controllers/notifications.controller";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -39,9 +40,21 @@ export const signup = async (req: Request, res: Response) => {
 
     const token = jwt.sign({ id: userId, business_id: businessId, role: "owner" }, JWT_SECRET, { expiresIn: "24h" });
 
-    res.status(201).json({ token, userId, businessId });
-  } catch (error) {
-    res.status(500).json({ message: "Error creating user", error });
+    // Send welcome email (non-blocking)
+    sendWelcomeEmail(businessName, email).catch(err => {
+      console.error("Failed to send welcome email:", err);
+    });
+
+    res.status(201).json({
+      token,
+      userId,
+      businessId,
+      email,
+      businessName,
+    });
+  } catch (error: any) {
+    console.error("Signup error:", error?.message || error);
+    res.status(500).json({ message: "Error creating user" });
   }
 };
 
@@ -59,14 +72,28 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
+    // Get business info
+    const business = await knex("businesses")
+      .where({ id: user.business_id })
+      .select("name", "subscription_tier")
+      .first();
+
     const token = jwt.sign(
       { id: user.id, business_id: user.business_id, role: user.role },
       JWT_SECRET,
       { expiresIn: "24h" }
     );
 
-    res.json({ token, userId: user.id, businessId: user.business_id });
-  } catch (error) {
-    res.status(500).json({ message: "Error logging in", error });
+    res.json({
+      token,
+      userId: user.id,
+      businessId: user.business_id,
+      email: user.email,
+      businessName: business?.name || "",
+      subscriptionTier: business?.subscription_tier || "free",
+    });
+  } catch (error: any) {
+    console.error("Login error:", error?.message || error);
+    res.status(500).json({ message: "Error logging in" });
   }
 };

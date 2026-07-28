@@ -23,6 +23,9 @@ app.use(helmet({
 app.use(cors());
 app.use(express.json());
 
+// Raw body parser for Stripe webhook (must come after express.json for other routes)
+app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
+
 // Health Check
 app.get("/health", (req, res) => {
   res.status(200).send("OK");
