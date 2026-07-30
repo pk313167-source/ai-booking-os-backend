@@ -1,5 +1,6 @@
 {
-  "buildCommand": "pnpm run build",
+  "framework": null,
+  "buildCommand": "pnpm exec vite build",
   "outputDirectory": "dist/public",
   "env": {
     "VITE_FRONTEND_FORGE_API_URL": "https://ai-booking-os-backend.onrender.com"
