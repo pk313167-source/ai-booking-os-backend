@@ -234,4 +234,26 @@ export const templates = {
       </div>
     `,
   }),
+  emailVerification: (email: string, verificationUrl: string) => ({
+    to: email,
+    subject: "Verify Your Email - AI Booking OS",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #2563eb; color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center;">
+          <h1 style="margin: 0; font-size: 28px;">Verify Your Email</h1>
+        </div>
+        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb;">
+          <p style="color: #4b5563;">Thank you for signing up with AI Booking OS. Please verify your email address to get started.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${verificationUrl}" style="background: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              Verify Email Address
+            </a>
+          </div>
+          <p style="color: #6b7280; font-size: 12px;">
+            If you didn't create an account, you can safely ignore this email.
+          </p>
+        </div>
+      </div>
+    `,
+  }),
 };

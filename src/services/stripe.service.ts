@@ -87,8 +87,10 @@ export const createStripeCheckoutSession = async (
   priceId: string,
   successUrl: string,
   cancelUrl: string,
+  businessId: string,
+  planId: string,
   customerEmail?: string,
-  customerName?: string
+  stripeCustomerId?: string
 ): Promise<Stripe.Checkout.Session> => {
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: "subscription",
@@ -102,16 +104,30 @@ export const createStripeCheckoutSession = async (
     success_url: successUrl,
     cancel_url: cancelUrl,
     metadata: {
-      plan_id: "professional",
+      business_id: businessId,
+      plan_id: planId,
     },
+    client_reference_id: businessId,
   };
 
-  if (customerEmail) {
+  if (stripeCustomerId) {
+    sessionParams.customer = stripeCustomerId;
+  } else if (customerEmail) {
     sessionParams.customer_email = customerEmail;
   }
 
   const session = await stripe.checkout.sessions.create(sessionParams);
   return session;
+};
+
+export const createBillingPortalSession = async (
+  customerId: string,
+  returnUrl: string
+): Promise<Stripe.BillingPortal.Session> => {
+  return await stripe.billingPortal.sessions.create({
+    customer: customerId,
+    return_url: returnUrl,
+  });
 };
 
 export const getStripeSubscriptionStatus = async (subscriptionId: string) => {

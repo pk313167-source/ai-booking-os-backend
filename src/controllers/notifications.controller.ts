@@ -125,3 +125,17 @@ export const sendPasswordResetEmail = async (
     return false;
   }
 };
+
+export const sendEmailVerificationEmail = async (
+  email: string,
+  verificationUrl: string
+) => {
+  try {
+    const template = templates.emailVerification(email, verificationUrl);
+    await sendEmail(template);
+    return true;
+  } catch (error: any) {
+    console.error("Error sending email verification email:", error?.message || error);
+    return false;
+  }
+};

@@ -48,7 +48,7 @@ export const createCheckoutSession = async (req: AuthRequest, res: Response) => 
           user.email,
           plan.name,
           "Free"
-        ).catch(err => {
+        ).catch((err: any) => {
           console.error("Failed to send trial email:", err);
         });
       }
@@ -64,10 +64,18 @@ export const createCheckoutSession = async (req: AuthRequest, res: Response) => 
       return res.status(400).json({ message: "Plan pricing not configured" });
     }
 
+    // Get user email for Stripe
+    const user = await knex("users").where({ id: userId }).first();
+    const business = await knex("businesses").where({ id: businessId }).first();
+
     const session = await createStripeCheckoutSession(
       priceId,
       `${FRONTEND_URL}/settings?upgrade=success`,
       `${FRONTEND_URL}/settings?upgrade=cancelled`,
+      businessId as string,
+      planId,
+      user?.email,
+      business?.stripe_customer_id
     );
 
     res.json({
@@ -110,14 +118,18 @@ export const handleWebhook = async (req: Request, res: Response) => {
 
     // Process the event based on type
     if (result.type === "checkout_completed") {
-      const subscriptionId = result.subscriptionId;
-      if (subscriptionId) {
+      const { subscriptionId, customerId, metadata } = result;
+      const businessId = metadata?.business_id;
+      const planId = metadata?.plan_id || "professional";
+
+      if (businessId) {
         await knex("businesses")
-          .whereNotNull("id")
-          .limit(1)
+          .where({ id: businessId })
           .update({
-            subscription_tier: "professional",
+            subscription_tier: planId,
             stripe_subscription_id: subscriptionId,
+            stripe_customer_id: customerId,
+            trial_ends_at: null, // End trial if they subscribe
           });
       }
     } else if (result.type === "subscription_cancelled") {
@@ -129,19 +141,49 @@ export const handleWebhook = async (req: Request, res: Response) => {
         });
     } else if (result.type === "subscription_updated") {
       const statusMap: Record<string, string> = {
-        active: "professional",
+        active: "active", // Keep current tier or update based on plan
         trialing: "starter",
         past_due: "professional",
         canceled: "free",
         incomplete: "free",
         unpaid: "free",
       };
-      const tier = statusMap[result.status] || "free";
-      await knex("businesses")
-        .where({ stripe_subscription_id: result.subscriptionId })
-        .update({
-          subscription_tier: tier,
-        });
+      
+      // If active, we might want to check the actual plan from Stripe
+      // For now, keep it simple
+      const status = result.status;
+      if (status === "canceled" || status === "unpaid") {
+        await knex("businesses")
+          .where({ stripe_subscription_id: result.subscriptionId })
+          .update({
+            subscription_tier: "free",
+            stripe_subscription_id: null,
+          });
+      }
+    } else if (result.type === "payment_succeeded") {
+      // Send payment receipt email
+      const { subscriptionId, amount } = result;
+      const business = await knex("businesses")
+        .where({ stripe_subscription_id: subscriptionId })
+        .first();
+      
+      if (business) {
+        const user = await knex("users")
+          .where({ business_id: business.id, role: "owner" })
+          .first();
+        
+        if (user?.email) {
+          const { sendPaymentReceiptEmail } = require("./notifications.controller");
+          sendPaymentReceiptEmail(
+            business.name,
+            user.email,
+            business.subscription_tier,
+            `$${(amount / 100).toFixed(2)}`
+          ).catch((err: any) => {
+            console.error("Failed to send payment receipt email:", err);
+          });
+        }
+      }
     }
 
     res.json({ received: true, type: result.type });
@@ -199,11 +241,11 @@ export const getBillingPortal = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: "No billing portal available" });
     }
 
-    const { stripe } = require("../services/stripe.service");
-    const portalSession = await stripe.billingPortal.sessions.create({
-      customer: business.stripe_customer_id,
-      return_url: `${FRONTEND_URL}/settings`,
-    });
+    const { createBillingPortalSession } = require("../services/stripe.service");
+    const portalSession = await createBillingPortalSession(
+      business.stripe_customer_id,
+      `${FRONTEND_URL}/settings`
+    );
 
     res.json({ url: portalSession.url });
   } catch (error: any) {

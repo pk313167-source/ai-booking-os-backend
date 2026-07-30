@@ -1,5 +1,11 @@
 import { Router } from "express";
-import { signup, login } from "../controllers/auth.controller";
+import { 
+  signup, 
+  login, 
+  verifyEmail, 
+  forgotPassword, 
+  resetPassword 
+} from "../controllers/auth.controller";
 import { getDashboard } from "../controllers/dashboard.controller";
 import { addContact, listContacts, editContact } from "../controllers/contacts.controller";
 import { bookAppointment, listAppointments, updateAppointment } from "../controllers/appointments.controller";
@@ -45,6 +51,22 @@ router.post("/auth/login", [
   body("password").exists(),
   validate
 ], login);
+
+router.post("/auth/verify-email", [
+  body("token").notEmpty(),
+  validate
+], verifyEmail);
+
+router.post("/auth/forgot-password", [
+  body("email").isEmail(),
+  validate
+], forgotPassword);
+
+router.post("/auth/reset-password", [
+  body("token").notEmpty(),
+  body("password").isLength({ min: 6 }),
+  validate
+], resetPassword);
 
 // User Profile
 router.get("/auth/profile", authenticateToken, getProfile);
