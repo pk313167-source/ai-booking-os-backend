@@ -4,9 +4,9 @@ export async function up(knex: Knex): Promise<void> {
   const exists = await knex.schema.hasTable("payments");
   if (!exists) {
     await knex.schema.createTable("payments", (table) => {
-      table.uuid("id").primary();
-      table.uuid("business_id").references("id").inTable("businesses");
-      table.uuid("user_id");
+      table.string("id", 255).primary();
+      table.string("business_id", 255).references("id").inTable("businesses");
+      table.string("user_id", 255);
       table.string("razorpay_order_id", 255);
       table.string("razorpay_payment_id", 255);
       table.string("razorpay_signature", 512);
