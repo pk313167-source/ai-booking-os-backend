@@ -3,7 +3,7 @@ services:
     name: ai-booking-os-backend
     runtime: node
     region: oregon
-    plan: starter
+    plan: free
     buildCommand: ./build.sh
     startCommand: node dist/src/index.js
     envVars:
