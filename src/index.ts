@@ -1,12 +1,23 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import * as Sentry from "@sentry/node";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import routes from "./routes";
 import { errorHandler } from "./middleware/error";
 import { initCronJobs } from "./cron/reminders";
+
+// Initialize Sentry
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || "production",
+    tracesSampleRate: 0.1,
+  });
+  console.log("Sentry initialized");
+}
 
 if (!process.env.JWT_SECRET) {
   console.warn("JWT_SECRET is not defined. Using a dummy secret for now.");
@@ -21,7 +32,6 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 app.use(cors());
-// Razorpay webhook uses JSON body (no raw body needed)
 app.use(express.json());
 
 // Health Check
@@ -31,6 +41,11 @@ app.get("/health", (req, res) => {
 
 // Routes
 app.use("/api", routes);
+
+// Sentry error handler
+if (process.env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
 
 // Error Handling
 app.use(errorHandler);
