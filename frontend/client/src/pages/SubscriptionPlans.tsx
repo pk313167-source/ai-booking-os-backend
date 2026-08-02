@@ -67,14 +67,14 @@ export default function SubscriptionPlans() {
     try {
       if (price === 0) {
         // Free trial activation
-        await paymentsAPI.createCheckoutSession(planId);
+        await paymentsAPI.createOrder(planId);
         toast.success("Free trial activated! Enjoy 14 days of full access.");
         fetchSubscriptionStatus();
         setCheckoutLoading(null);
         return;
       }
 
-      const response = await paymentsAPI.createCheckoutSession(planId);
+      const response = await paymentsAPI.createOrder(planId);
       if (response.data?.sessionUrl) {
         window.location.href = response.data.sessionUrl;
       } else {

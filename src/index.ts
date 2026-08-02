@@ -21,8 +21,7 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 app.use(cors());
-// Raw body parser for Stripe webhook (must come before express.json)
-app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
+// Razorpay webhook uses JSON body (no raw body needed)
 app.use(express.json());
 
 // Health Check

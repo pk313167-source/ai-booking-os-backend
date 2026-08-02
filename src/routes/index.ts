@@ -25,10 +25,11 @@ import { getProfile, updateProfile } from "../controllers/profile.controller";
 // Payment and notification controllers
 import {
   getPlans,
-  createCheckoutSession,
+  createPaymentOrder,
   handleWebhook,
   getSubscriptionStatus,
-  getBillingPortal,
+  verifyPayment,
+  getPaymentHistory,
 } from "../controllers/payments.controller";
 import { testEmail } from "../controllers/notifications.controller";
 
@@ -164,12 +165,13 @@ router.delete("/bookings/:id", authenticateToken, deleteBooking);
 
 // Payments
 router.get("/payments/plans", getPlans);
-router.post("/payments/create-checkout-session", authenticateToken, createCheckoutSession);
+router.post("/payments/create-checkout-session", authenticateToken, createPaymentOrder);
 router.get("/payments/subscription-status", authenticateToken, getSubscriptionStatus);
-router.post("/payments/billing-portal", authenticateToken, getBillingPortal);
-// Webhook must not require authentication (Stripe sends its own signature)
+router.post("/payments/verify", authenticateToken, verifyPayment);
+router.get("/payments/history", authenticateToken, getPaymentHistory);
+
 router.post("/payments/webhook", (req, res, next) => {
-  // Ensure raw body is available for Stripe signature verification
+  
   handleWebhook(req, res);
 });
 

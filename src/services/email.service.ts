@@ -1,259 +1,73 @@
 import nodemailer from "nodemailer";
 
-// Create transporter - uses SMTP configuration from environment
+// Brevo SMTP Configuration
 const createTransporter = () => {
-  if (
-    process.env.SMTP_HOST &&
-    process.env.SMTP_USER &&
-    process.env.SMTP_PASS
-  ) {
-    return nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || "587"),
-      secure: process.env.SMTP_SECURE === "true",
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-  }
+  const host = process.env.BREVO_SMTP_HOST || process.env.SMTP_HOST;
+  const user = process.env.BREVO_SMTP_USER || process.env.SMTP_USER;
+  const pass = process.env.BREVO_SMTP_PASS || process.env.SMTP_PASS;
+  const port = parseInt(process.env.BREVO_SMTP_PORT || process.env.SMTP_PORT || "587");
 
-  // Fallback: log to console in development
+  if (host && user && pass) {
+    return nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } });
+  }
   return null;
 };
 
 const transporter = createTransporter();
+const FROM_EMAIL = process.env.BREVO_FROM_EMAIL || process.env.SMTP_FROM || "noreply@aibookingos.com";
+const FROM_NAME = process.env.BREVO_FROM_NAME || "AI Booking OS";
 
-export interface EmailOptions {
-  to: string;
-  subject: string;
-  html: string;
-  text?: string;
-}
+export interface EmailOptions { to: string; subject: string; html: string; text?: string; }
 
 export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
   try {
     if (!transporter) {
-      // Log email details when no SMTP is configured
-      console.log("=== EMAIL (SMTP not configured, logging instead) ===");
-      console.log(`To: ${options.to}`);
-      console.log(`Subject: ${options.subject}`);
-      console.log(`HTML: ${options.html.substring(0, 200)}...`);
-      console.log("================================================");
+      console.log(`=== EMAIL (no SMTP) === To: ${options.to} | Subject: ${options.subject}`);
       return true;
     }
-
-    const mailOptions = {
-      from: process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@ai-booking-os.com",
-      to: options.to,
-      subject: options.subject,
-      html: options.html,
-      text: options.text || options.html.replace(/<[^>]*>/g, ""),
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`Email sent to ${options.to}: ${info.messageId}`);
+    await transporter.sendMail({ from: `"${FROM_NAME}" <${FROM_EMAIL}>`, to: options.to, subject: options.subject, html: options.html, text: options.text });
+    console.log(`Email sent to ${options.to}: ${options.subject}`);
     return true;
   } catch (error: any) {
-    console.error("Error sending email:", error?.message || error);
+    console.error("Email send error:", error?.message || error);
     return false;
   }
 };
 
-// Email templates
 export const templates = {
   welcome: (businessName: string, email: string) => ({
     to: email,
-    subject: `Welcome to AI Booking OS - ${businessName}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: #2563eb; color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center;">
-          <h1 style="margin: 0; font-size: 28px;">Welcome to AI Booking OS!</h1>
-        </div>
-        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb;">
-          <h2 style="color: #1f2937;">Welcome, ${businessName}!</h2>
-          <p style="color: #4b5563; line-height: 1.6;">
-            Thank you for signing up with AI Booking OS. Your account has been created successfully.
-          </p>
-          <p style="color: #4b5563; line-height: 1.6;">
-            You can now start managing your appointments, contacts, and bookings with the help of our AI assistant.
-          </p>
-          <div style="background: #eff6ff; border-left: 4px solid #2563eb; padding: 15px; margin: 20px 0;">
-            <h3 style="color: #1e40af; margin-top: 0;">Getting Started</h3>
-            <ul style="color: #4b5563; line-height: 1.6;">
-              <li>Set up your business profile in Settings</li>
-              <li>Add your first contacts</li>
-              <li>Create your first booking</li>
-              <li>Try the AI Chat assistant</li>
-            </ul>
-          </div>
-          <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
-            This is an automated email from AI Booking OS. If you have any questions, please contact support.
-          </p>
-        </div>
-      </div>
-    `,
-  }),
-
-  bookingConfirmation: (customerName: string, bookingDate: string, bookingTime: string, serviceName?: string) => ({
-    to: "", // Will be set by caller
-    subject: "Booking Confirmation - AI Booking OS",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: #059669; color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center;">
-          <h1 style="margin: 0; font-size: 28px;">Booking Confirmed!</h1>
-        </div>
-        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb;">
-          <p style="color: #4b5563;">Dear ${customerName},</p>
-          <p style="color: #4b5563;">Your booking has been confirmed with the following details:</p>
-          <table style="width: 100%; margin: 20px 0; border-collapse: collapse;">
-            <tr style="border-bottom: 1px solid #e5e7eb;">
-              <td style="padding: 10px; color: #6b7280;">Date</td>
-              <td style="padding: 10px; color: #1f2937; font-weight: bold;">${bookingDate}</td>
-            </tr>
-            <tr style="border-bottom: 1px solid #e5e7eb;">
-              <td style="padding: 10px; color: #6b7280;">Time</td>
-              <td style="padding: 10px; color: #1f2937; font-weight: bold;">${bookingTime}</td>
-            </tr>
-            ${serviceName ? `<tr style="border-bottom: 1px solid #e5e7eb;">
-              <td style="padding: 10px; color: #6b7280;">Service</td>
-              <td style="padding: 10px; color: #1f2937; font-weight: bold;">${serviceName}</td>
-            </tr>` : ""}
-          </table>
-          <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
-            If you need to make changes, please contact us directly.
-          </p>
-        </div>
-      </div>
-    `,
-  }),
-
-  bookingCancellation: (customerName: string, bookingDate: string, bookingTime: string) => ({
-    to: "",
-    subject: "Booking Cancellation - AI Booking OS",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: #dc2626; color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center;">
-          <h1 style="margin: 0; font-size: 28px;">Booking Cancelled</h1>
-        </div>
-        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb;">
-          <p style="color: #4b5563;">Dear ${customerName},</p>
-          <p style="color: #4b5563;">Your booking has been cancelled. Here are the details:</p>
-          <table style="width: 100%; margin: 20px 0; border-collapse: collapse;">
-            <tr style="border-bottom: 1px solid #e5e7eb;">
-              <td style="padding: 10px; color: #6b7280;">Date</td>
-              <td style="padding: 10px; color: #1f2937; font-weight: bold;">${bookingDate}</td>
-            </tr>
-            <tr style="border-bottom: 1px solid #e5e7eb;">
-              <td style="padding: 10px; color: #6b7280;">Time</td>
-              <td style="padding: 10px; color: #1f2937; font-weight: bold;">${bookingTime}</td>
-            </tr>
-            <tr style="border-bottom: 1px solid #e5e7eb;">
-              <td style="padding: 10px; color: #6b7280;">Status</td>
-              <td style="padding: 10px; color: #dc2626; font-weight: bold;">Cancelled</td>
-            </tr>
-          </table>
-          <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
-            If this was done in error, please contact us to re-book.
-          </p>
-        </div>
-      </div>
-    `,
-  }),
-
-  paymentReceipt: (customerName: string, planName: string, amount: string) => ({
-    to: "",
-    subject: "Payment Receipt - AI Booking OS",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: #2563eb; color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center;">
-          <h1 style="margin: 0; font-size: 28px;">Payment Receipt</h1>
-        </div>
-        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb;">
-          <p style="color: #4b5563;">Dear ${customerName},</p>
-          <p style="color: #4b5563;">Thank you for your subscription payment. Here's your receipt:</p>
-          <table style="width: 100%; margin: 20px 0; border-collapse: collapse;">
-            <tr style="border-bottom: 1px solid #e5e7eb;">
-              <td style="padding: 10px; color: #6b7280;">Plan</td>
-              <td style="padding: 10px; color: #1f2937; font-weight: bold;">${planName}</td>
-            </tr>
-            <tr style="border-bottom: 1px solid #e5e7eb;">
-              <td style="padding: 10px; color: #6b7280;">Amount</td>
-              <td style="padding: 10px; color: #1f2937; font-weight: bold;">${amount}</td>
-            </tr>
-            <tr style="border-bottom: 1px solid #e5e7eb;">
-              <td style="padding: 10px; color: #6b7280;">Status</td>
-              <td style="padding: 10px; color: #059669; font-weight: bold;">Paid</td>
-            </tr>
-          </table>
-          <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
-            This is your subscription payment receipt for AI Booking OS.
-          </p>
-        </div>
-      </div>
-    `,
-  }),
-
-  passwordReset: (email: string, resetUrl: string) => ({
-    to: email,
-    subject: "Password Reset - AI Booking OS",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: #2563eb; color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center;">
-          <h1 style="margin: 0; font-size: 28px;">Password Reset</h1>
-        </div>
-        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb;">
-          <p style="color: #4b5563;">We received a request to reset your password.</p>
-          <p style="color: #4b5563;">Click the button below to reset your password:</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${resetUrl}" style="background: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">
-              Reset Password
-            </a>
-          </div>
-          <p style="color: #6b7280; font-size: 12px;">
-            This link will expire in 1 hour. If you didn't request this, please ignore this email.
-          </p>
-        </div>
-      </div>
-    `,
-  }),
-
-  testEmail: () => ({
-    to: "",
-    subject: "Test Email - AI Booking OS",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: #2563eb; color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center;">
-          <h1 style="margin: 0; font-size: 28px;">Test Email</h1>
-        </div>
-        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb;">
-          <p style="color: #4b5563;">This is a test email from AI Booking OS.</p>
-          <p style="color: #4b5563;">If you received this email, your email configuration is working correctly.</p>
-          <p style="color: #059669; font-weight: bold; margin-top: 20px;">Email service is active!</p>
-        </div>
-      </div>
-    `,
+    subject: "Welcome to AI Booking OS!",
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;"><div style="background:#2563eb;color:white;padding:30px;border-radius:8px 8px 0 0;text-align:center;"><h1 style="margin:0;font-size:28px;">Welcome to AI Booking OS!</h1></div><div style="background:#f9fafb;padding:30px;border-radius:0 0 8px 8px;border:1px solid #e5e7eb;"><p>Hi there! Your business <strong>${businessName}</strong> is set up.</p><ul><li>Manage bookings</li><li>Track customers</li><li>AI chat assistance</li><li>Automated reminders</li></ul></div></div>`,
   }),
   emailVerification: (email: string, verificationUrl: string) => ({
     to: email,
     subject: "Verify Your Email - AI Booking OS",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: #2563eb; color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center;">
-          <h1 style="margin: 0; font-size: 28px;">Verify Your Email</h1>
-        </div>
-        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb;">
-          <p style="color: #4b5563;">Thank you for signing up with AI Booking OS. Please verify your email address to get started.</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${verificationUrl}" style="background: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">
-              Verify Email Address
-            </a>
-          </div>
-          <p style="color: #6b7280; font-size: 12px;">
-            If you didn't create an account, you can safely ignore this email.
-          </p>
-        </div>
-      </div>
-    `,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;"><div style="background:#2563eb;color:white;padding:30px;border-radius:8px 8px 0 0;text-align:center;"><h1 style="margin:0;">Verify Your Email</h1></div><div style="background:#f9fafb;padding:30px;border-radius:0 0 8px 8px;border:1px solid #e5e7eb;"><p>Please verify your email address:</p><div style="text-align:center;margin:30px 0;"><a href="${verificationUrl}" style="background:#2563eb;color:white;padding:12px 30px;text-decoration:none;border-radius:6px;display:inline-block;">Verify Email</a></div><p style="font-size:12px;color:#6b7280;">If you didn't create an account, ignore this email.</p></div></div>`,
+  }),
+  passwordReset: (email: string, resetUrl: string) => ({
+    to: email,
+    subject: "Password Reset - AI Booking OS",
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;"><div style="background:#2563eb;color:white;padding:30px;border-radius:8px 8px 0 0;text-align:center;"><h1 style="margin:0;">Password Reset</h1></div><div style="background:#f9fafb;padding:30px;border-radius:0 0 8px 8px;border:1px solid #e5e7eb;"><p>Click below to reset your password:</p><div style="text-align:center;margin:30px 0;"><a href="${resetUrl}" style="background:#2563eb;color:white;padding:12px 30px;text-decoration:none;border-radius:6px;display:inline-block;">Reset Password</a></div><p style="font-size:12px;color:#6b7280;">Link expires in 1 hour.</p></div></div>`,
+  }),
+  bookingConfirmation: (customerName: string, date: string, time: string, serviceName?: string) => ({
+    to: "",
+    subject: "Booking Confirmed - AI Booking OS",
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;"><div style="background:#059669;color:white;padding:30px;border-radius:8px 8px 0 0;text-align:center;"><h1 style="margin:0;">Booking Confirmed!</h1></div><div style="background:#f9fafb;padding:30px;border-radius:0 0 8px 8px;border:1px solid #e5e7eb;"><p>Hi ${customerName},</p><p>Your booking is confirmed:</p><table style="width:100%;margin:20px 0;"><tr><td style="padding:8px;color:#6b7280;">Date</td><td style="padding:8px;font-weight:bold;">${date}</td></tr><tr><td style="padding:8px;color:#6b7280;">Time</td><td style="padding:8px;font-weight:bold;">${time}</td></tr>${serviceName ? `<tr><td style="padding:8px;color:#6b7280;">Service</td><td style="padding:8px;font-weight:bold;">${serviceName}</td></tr>` : ""}</table></div></div>`,
+  }),
+  bookingCancellation: (customerName: string, date: string, time: string) => ({
+    to: "",
+    subject: "Booking Cancelled - AI Booking OS",
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;"><div style="background:#dc2626;color:white;padding:30px;border-radius:8px 8px 0 0;text-align:center;"><h1 style="margin:0;">Booking Cancelled</h1></div><div style="background:#f9fafb;padding:30px;border-radius:0 0 8px 8px;border:1px solid #e5e7eb;"><p>Hi ${customerName},</p><p>Your booking on ${date} at ${time} has been cancelled.</p><p style="font-size:12px;color:#6b7280;">If this was a mistake, please rebook.</p></div></div>`,
+  }),
+  paymentReceipt: (customerName: string, planName: string, amount: string) => ({
+    to: "",
+    subject: "Payment Receipt - AI Booking OS",
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;"><div style="background:#2563eb;color:white;padding:30px;border-radius:8px 8px 0 0;text-align:center;"><h1 style="margin:0;">Payment Receipt</h1></div><div style="background:#f9fafb;padding:30px;border-radius:0 0 8px 8px;border:1px solid #e5e7eb;"><p>Dear ${customerName},</p><table style="width:100%;margin:20px 0;"><tr><td style="padding:8px;color:#6b7280;">Plan</td><td style="padding:8px;font-weight:bold;">${planName}</td></tr><tr><td style="padding:8px;color:#6b7280;">Amount</td><td style="padding:8px;font-weight:bold;">${amount}</td></tr><tr><td style="padding:8px;color:#6b7280;">Status</td><td style="padding:8px;color:#059669;font-weight:bold;">Paid</td></tr></table></div></div>`,
+  }),
+  testEmail: () => ({
+    to: "",
+    subject: "Test Email - AI Booking OS",
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;"><div style="background:#2563eb;color:white;padding:30px;border-radius:8px 8px 0 0;text-align:center;"><h1 style="margin:0;">Test Email</h1></div><div style="background:#f9fafb;padding:30px;border-radius:0 0 8px 8px;border:1px solid #e5e7eb;"><p>Email service is active!</p></div></div>`,
   }),
 };

@@ -113,8 +113,10 @@ export const profileAPI = {
 };
 
 export const paymentsAPI = {
-  createCheckoutSession: (planId: string) =>
+  createOrder: (planId: string) =>
     apiClient.post("/payments/create-checkout-session", { planId }),
+  verifyPayment: (data: any) => apiClient.post("/payments/verify", data),
+  getPaymentHistory: () => apiClient.get("/payments/history"),
   getSubscriptionStatus: () =>
     apiClient.get("/payments/subscription-status"),
 };
