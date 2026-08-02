@@ -2,7 +2,7 @@
 set -o errexit
 
 echo "Installing dependencies..."
-npm install
+npm install --include=dev
 
 echo "Building project..."
 npm run build
