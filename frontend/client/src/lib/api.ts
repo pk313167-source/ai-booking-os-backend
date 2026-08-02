@@ -115,10 +115,15 @@ export const profileAPI = {
 export const paymentsAPI = {
   createOrder: (planId: string) =>
     apiClient.post("/payments/create-checkout-session", { planId }),
-  verifyPayment: (data: any) => apiClient.post("/payments/verify", data),
+  verifyPayment: (data: {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+  }) => apiClient.post("/payments/verify", data),
   getPaymentHistory: () => apiClient.get("/payments/history"),
   getSubscriptionStatus: () =>
     apiClient.get("/payments/subscription-status"),
+  getPlans: () => apiClient.get("/payments/plans"),
 };
 
 export default apiClient;

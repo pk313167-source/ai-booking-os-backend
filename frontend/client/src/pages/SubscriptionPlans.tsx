@@ -74,16 +74,63 @@ export default function SubscriptionPlans() {
         return;
       }
 
+      // Create payment order via backend (Razorpay)
       const response = await paymentsAPI.createOrder(planId);
-      if (response.data?.sessionUrl) {
-        window.location.href = response.data.sessionUrl;
-      } else {
-        toast.success("Plan upgrade initiated!");
-        fetchSubscriptionStatus();
+      const { orderId, amount, currency, keyId, planName: backendPlanName } = response.data;
+
+      if (!orderId || !amount || !keyId) {
+        throw new Error("Invalid payment order response from server");
       }
+
+      // Open Razorpay Checkout
+      const options = {
+        key: keyId,
+        amount: amount,
+        currency: currency,
+        name: "AI Booking OS",
+        description: `Upgrade to ${backendPlanName || planName}`,
+        order_id: orderId,
+        handler: async function (response: {
+          razorpay_order_id: string;
+          razorpay_payment_id: string;
+          razorpay_signature: string;
+        }) {
+          try {
+            // Verify payment on backend
+            const verifyResponse = await paymentsAPI.verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+
+            if (verifyResponse.data?.message) {
+              toast.success("Payment successful! Your subscription has been upgraded.");
+              fetchSubscriptionStatus();
+            }
+          } catch (verifyError: any) {
+            toast.error(verifyError.response?.data?.message || "Payment verification failed. Please contact support.");
+          } finally {
+            setCheckoutLoading(null);
+          }
+        },
+        prefill: {
+          email: user?.email || "",
+        },
+        theme: {
+          color: "#6366f1",
+        },
+        modal: {
+          ondismiss: function () {
+            toast.info("Payment cancelled.");
+            setCheckoutLoading(null);
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to process upgrade");
-    } finally {
       setCheckoutLoading(null);
     }
   };
