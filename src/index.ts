@@ -4,6 +4,7 @@ dotenv.config();
 import * as Sentry from "@sentry/node";
 import express from "express";
 import cors from "cors";
+import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import routes from "./routes";
 import { errorHandler } from "./middleware/error";
@@ -50,6 +51,11 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: "10mb" }));
+
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { message: "Too many requests, try again later" } });
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { message: "Too many requests, try again later" } });
+app.use("/api/auth", authLimiter);
+app.use("/api/payments", apiLimiter);
 
 // Health Check
 app.get("/health", (req, res) => {
