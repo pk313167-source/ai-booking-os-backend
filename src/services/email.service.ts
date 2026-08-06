@@ -8,7 +8,15 @@ const createTransporter = () => {
   const port = parseInt(process.env.BREVO_SMTP_PORT || process.env.SMTP_PORT || "587");
 
   if (host && user && pass) {
-    return nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } });
+    return nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+    });
   }
   return null;
 };

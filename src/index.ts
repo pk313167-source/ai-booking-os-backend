@@ -27,12 +27,29 @@ if (!process.env.JWT_SECRET) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// CORS Configuration
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "https://ai-booking-os-frontend.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:3000",
+].filter(Boolean) as string[];
+
 app.use(helmet({
   contentSecurityPolicy: false,
 }));
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+      return callback(null, true);
+    }
+    callback(null, false);
+  },
+  credentials: true,
+}));
+app.use(express.json({ limit: "10mb" }));
 
 // Health Check
 app.get("/health", (req, res) => {

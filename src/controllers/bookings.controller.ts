@@ -112,7 +112,7 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
 
     // Enrich and return
     const booking = await knex("bookings").where({ id }).first();
-    const enriched = enrichBooking(booking);
+    const enriched = await enrichBooking(booking);
 
     // Send booking confirmation email (non-blocking)
     if (customer.email) {
@@ -158,7 +158,7 @@ export const listBookings = async (req: AuthRequest, res: Response) => {
     query = query.orderBy("date", "desc").orderBy("time", "desc");
 
     const bookings = await query;
-    const enriched = bookings.map(enrichBooking);
+    const enriched = await Promise.all(bookings.map(enrichBooking));
 
     res.json(enriched);
   } catch (error: any) {
@@ -180,7 +180,7 @@ export const getBooking = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    res.json(enrichBooking(booking));
+    res.json(await enrichBooking(booking));
   } catch (error: any) {
     console.error("Error getting booking:", error?.message || error);
     res.status(500).json({ message: "Error getting booking" });
@@ -277,7 +277,7 @@ export const updateBooking = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    res.json(enrichBooking(updated));
+    res.json(await enrichBooking(updated));
   } catch (error: any) {
     console.error("Error updating booking:", error?.message || error);
     res.status(500).json({ message: "Error updating booking" });
